@@ -1,0 +1,991 @@
+Description: Install a Makefiles based build system.
+Forwarded: No
+Author: Sven Geuer <debmaint@g-e-u-e-r.de>
+Last-Update: 2021-05-15
+--- /dev/null
++++ b/Makefile
+@@ -0,0 +1,16 @@
++MAKECMDGOALS ?= all
++SUBDIRS = libvncauth vncviewer vncpasswd vncconnect Xvnc
++
++all: list_defines $(SUBDIRS)
++
++clean install: $(SUBDIRS)
++
++list_defines:
++	$(CC) $(CPPFLAGS) $(CFLAGS) -x c -E -dM /dev/null | sort
++
++vncviewer vncpasswd Xvnc: libvncauth
++
++$(SUBDIRS):
++	$(MAKE) -C $@ $(MAKECMDGOALS)
++
++.PHONY: all clean install list_defines $(SUBDIRS)
+--- /dev/null
++++ b/Xvnc/Makefile
+@@ -0,0 +1,16 @@
++DATABITS64 = $(shell $(CC) -x c -E -dM /dev/null | grep 'SIZE_WIDTH.*64')
++
++export LN = ln -snf
++export DEFS = $(if $(DATABITS64),-D_XSERVER64,) -D_POSIX_C_SOURCE=199309L -D_POSIX_SOURCE -D_XOPEN_SOURCE=500L -D_DEFAULT_SOURCE -D_REENTRANT -DNDEBUG -DFUNCPROTO=15 -DNARROWPROTO
++
++SUBDIRS = include lib programs
++
++all clean install: $(SUBDIRS)
++
++lib: include
++programs: include lib
++
++$(SUBDIRS):
++	$(MAKE) -C $@ $(MAKECMDGOALS)
++
++.PHONY: all clean install $(SUBDIRS)
+--- /dev/null
++++ b/Xvnc/include/Makefile
+@@ -0,0 +1,23 @@
++HDRS = DECkeysym.h HPkeysym.h Sunkeysym.h X.h XWDFile.h Xalloca.h Xatom.h Xfuncproto.h Xfuncs.h Xmd.h Xos.h Xos_r.h Xosdefs.h Xpoll.h Xproto.h Xprotostr.h Xthreads.h ap_keysym.h keysym.h keysymdef.h
++X11HDRS = X11/cursorfont.h X11/Xcms.h X11/XKBlib.h X11/Xlib.h X11/Xlibint.h X11/Xlocale.h X11/Xresource.h X11/Xutil.h
++XAUHDRS = Xau/Xauth.h
++XDMCPHDRS = Xdmcp/Xdmcp.h
++XTRANSHDRS = xtrans/Xtrans.h
++LIBHDRS = $(X11HDRS) $(XAUHDRS) $(XDMCPHDRS) $(XTRANSHDRS)
++SUBDIRS = bitmaps extensions fonts
++
++all: $(SUBDIRS)
++	mkdir -p ../exports/include/X11 && \
++		cd ../exports/include/X11 && \
++		for h in $(HDRS); do $(LN) ../../../include/$$h .; done && \
++		for h in $(LIBHDRS); do $(LN) ../../../lib/$$h .; done
++
++$(SUBDIRS):
++	$(MAKE) -C $@ $(MAKECMDGOALS)
++
++clean: $(SUBDIRS)
++	$(RM) -r ../exports
++
++install:
++
++.PHONY: all clean install $(SUBDIRS)
+--- /dev/null
++++ b/Xvnc/include/bitmaps/Makefile
+@@ -0,0 +1,13 @@
++HDRS = 1x1 2x2 black boxes calculator cntr_ptr cntr_ptrmsk cross_weave dimple1 dimple3 dot dropbar7 dropbar8 escherknot flagdown flagup flipped_gray gray gray1 gray3 grid2 grid4 grid8 grid16 hlines2 hlines3 icon keyboard16 left_ptr left_ptrmsk letters light_gray mailempty mailemptymsk mailfull mailfullmsk mensetmanus menu6 menu8 menu10 menu12 menu16 noletters opendot opendotMask plaid right_ptr right_ptrmsk root_weave scales sipb star starMask stipple target terminal tie_fighter vlines2 vlines3 weird_size wide_weave wingdogs woman xfd_icon xlogo11 xlogo16 xlogo32 xlogo64 xsnow
++
++all:
++	mkdir -p ../../exports/include/X11/bitmaps && \
++		cd ../../exports/include/X11/bitmaps && \
++		for h in $(HDRS); do $(LN) ../../../../include/bitmaps/$$h .; done
++
++clean:
++	$(RM) -r ../../exports/include/X11/bitmaps
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/include/extensions/Makefile
+@@ -0,0 +1,13 @@
++HDRS = Xext.h multibuf.h shape.h XShm.h MITMisc.h XI.h XInput.h XIproto.h    XTest.h xtestext1.h XIE.h XIEproto.h XIEprotost.h sync.h    XKB.h XKBgeom.h XKBproto.h XKBstr.h XKBsrv.h Xdbe.h Xdbeproto.h     Xag.h Xagstr.h Xagsrv.h     record.h recordstr.h         lbxbuf.h lbxbufstr.h lbxdeltastr.h lbximage.h         lbxopts.h lbxstr.h lbxzlib.h     security.h securstr.h   Print.h Printstr.h
++
++all:
++	mkdir -p ../../exports/include/X11/extensions && \
++		cd ../../exports/include/X11/extensions && \
++		for h in $(HDRS); do $(LN) ../../../../include/extensions/$$h .; done
++
++clean:
++	$(RM) -r ../../exports/include/X11/extensions
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/include/fonts/Makefile
+@@ -0,0 +1,13 @@
++HDRS = FS.h FSproto.h fsmasks.h
++
++all:
++	mkdir -p ../../exports/include/X11/fonts && \
++		cd ../../exports/include/X11/fonts && \
++		for h in $(HDRS); do $(LN) ../../../../include/fonts/$$h .; done
++
++clean:
++	$(RM) -r ../../exports/include/X11/fonts
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/lib/Makefile
+@@ -0,0 +1,8 @@
++SUBDIRS = font Xau Xdmcp
++
++all clean install: $(SUBDIRS)
++
++$(SUBDIRS):
++	$(MAKE) -C $@ $(MAKECMDGOALS)
++
++.PHONY: all clean install $(SUBDIRS)
+--- /dev/null
++++ b/Xvnc/lib/Xau/Makefile
+@@ -0,0 +1,20 @@
++SRCS = AuDispose.c AuFileName.c AuGetAddr.c AuGetBest.c AuLock.c AuRead.c AuUnlock.c AuWrite.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I../../exports/include
++DEFS +=
++
++all:libXau.a
++
++libXau.a: $(OBJS)
++	$(RM) $@
++	$(AR) cqs $@ $^
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) libXau.a
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/lib/Xdmcp/Makefile
+@@ -0,0 +1,22 @@
++SRCS = A8Eq.c AA8.c AA16.c AA32.c AofA8.c CA8.c DA8.c DA16.c DA32.c DAofA8.c Fill.c Flush.c RA8.c RA16.c RA32.c RAofA8.c RC8.c RC16.c RC32.c RHead.c RR.c RaA8.c RaA16.c RaA32.c RaAoA8.c WA8.c WA16.c WA32.c WAofA8.c WC8.c WC16.c WC32.c Whead.c Alloc.c CmpKey.c DecKey.c GenKey.c IncKey.c Wrap.c Unwrap.c Wraphelp.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I../../exports/include
++DEFS += -DHASXDMAUTH
++# Present in Imake-generated Makefile but not really in use.
++#DEFS += -DUNIXCONN -DTCPCONN
++
++all: libXdmcp.a
++
++libXdmcp.a: $(OBJS)
++	$(RM) $@
++	$(AR) cqs $@ $^
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) libXdmcp.a
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/lib/font/Makefile
+@@ -0,0 +1,20 @@
++SRCS = bitmap/?*.c fontfile/?*.c fc/?*.c Speedo/?*.c Type1/?*.c util/?*.c
++OBJS = $(SRCS:.c=.o)
++INCS +=
++SUBDIRS = $(patsubst %/?*.c,%,$(SRCS))
++
++all: libfont.a
++
++libfont.a: $(SUBDIRS)
++	$(RM) $@
++	$(AR) cqs $@ $(OBJS)
++
++$(SUBDIRS):
++	$(MAKE) -C $@ $(MAKECMDGOALS)
++
++clean: $(SUBDIRS)
++	$(RM) libfont.a
++
++install:
++
++.PHONY: all clean install $(SUBDIRS)
+--- /dev/null
++++ b/Xvnc/lib/font/Speedo/Makefile
+@@ -0,0 +1,16 @@
++SRCS = spfuncs.c spfile.c spinfo.c sperr.c spfont.c spglyph.c spencode.c do_char.c do_trns.c out_bl2d.c out_blk.c out_scrn.c out_util.c reset.c set_spcs.c set_trns.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I../../../include/fonts -I../include -I../../../programs/Xserver/include
++DEFS +=
++
++all: $(OBJS)
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS)
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/lib/font/Type1/Makefile
+@@ -0,0 +1,16 @@
++SRCS = arith.c curves.c fontfcn.c hints.c lines.c objects.c paths.c regions.c scanfont.c spaces.c t1funcs.c t1info.c t1io.c t1malloc.c t1snap.c t1stub.c token.c type1.c util.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I../../../include/fonts -I../include
++DEFS +=
++
++all: $(OBJS)
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS)
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/lib/font/bitmap/Makefile
+@@ -0,0 +1,16 @@
++SRCS = bdfread.c bdfutils.c bitmap.c bitmaputil.c bitscale.c bitmapfunc.c pcfread.c pcfwrite.c snfread.c fontink.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I../../../include/fonts -I../include
++DEFS += -DX_GZIP_FONT_COMPRESSION
++
++all: $(OBJS)
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS)
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/lib/font/fc/Makefile
+@@ -0,0 +1,28 @@
++SRCS = fsconvert.c fserve.c fsio.c transport.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I../../../include/fonts -I../../../exports/include -I../include
++DEFS +=
++
++XTRANS_INCS = -I../../xtrans
++XTRANS_DEFS = -DUNIXCONN -DTCPCONN -DFONT_t -DTRANS_CLIENT -DTRANS_SERVER -DTRANS_REOPEN
++
++all: $(OBJS)
++
++transport.o: transport.c
++	if ! $(CC) -c $(CPPFLAGS) $(CFLAGS) -Wno-error=format-security $(XTRANS_INCS) $(DEFS) $(XTRANS_DEFS) -o $@ $< ; then kill -s TERM `pidof make` ; fi
++
++transport.c: ../../xtrans/transport.c
++	$(LN) $< $@
++
++fsio.o: fsio.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) $(XTRANS_DEFS) -o $@ $<
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) transport.c
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/lib/font/fontfile/Makefile
+@@ -0,0 +1,16 @@
++SRCS = dirfile.c fontdir.c fontfile.c fileio.c fontscale.c defaults.c bitsource.c register.c renderers.c bufio.c decompress.c filewr.c printerfont.c ffcheck.c gunzip.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I../../../include/fonts -I../include -I../../../programs/Xserver/include
++DEFS += -DX_GZIP_FONT_COMPRESSION -DFONTDIRATTRIB
++
++all: $(OBJS)
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS)
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/lib/font/util/Makefile
+@@ -0,0 +1,16 @@
++SRCS = utilbitmap.c fontnames.c fontutil.c fontxlfd.c format.c fontaccel.c atom.c miscutil.c private.c patcache.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I../../../include/fonts -I../include
++DEFS +=
++
++all: $(OBJS)
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS)
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/programs/Makefile
+@@ -0,0 +1,9 @@
++SUBDIRS = Xserver
++
++all clean install: $(SUBDIRS)
++
++$(SUBDIRS):
++	$(MAKE) -C $@ $(MAKECMDGOALS)
++
++.PHONY: all clean install $(SUBDIRS)
++
+--- /dev/null
++++ b/Xvnc/programs/Xserver/Makefile
+@@ -0,0 +1,20 @@
++DEFS += -DSHAPE -DSTATIC_COLOR -DAVOID_GLYPHBLT -DPIXPRIV -DMITMISC -DXTEST -DXSYNC -DXCMISC -DMITSHM -DBIGREQS -DGLX_MODULE # -DGCCUSESGAS # <- Only required for assembler optimization which has been disabled in Makefile.cfb-common
++LIBS = dix/libdix.a os/libos.a ../../lib/Xau/libXau.a ../../lib/Xdmcp/libXdmcp.a ../../lib/font/libfont.a  hw/vnc/libvnc.a ../../../libvncauth/libvncauth.a cfb/libcfb.a cfb16/libcfb.a cfb24/libcfb.a cfb32/libcfb.a mfb/libmfb.a dix/libxpstubs.a mi/libmi.a Xext/libext.a -lm -lz -ljpeg -lcrypt
++SUBDIRS = dix os mi Xext mfb cfb cfb16 cfb24 cfb32 hw/vnc
++
++all: Xvnc
++
++Xvnc: $(SUBDIRS)
++	$(CC) $(LDFLAGS) -o $@ $(LIBS)
++
++cfb16 cfb24 cfb32: cfb
++
++$(SUBDIRS):
++	$(MAKE) -C $@ $(MAKECMDGOALS)
++
++clean: $(SUBDIRS)
++	$(RM) Xvnc
++
++install:
++
++.PHONY: all clean install $(SUBDIRS)
+--- /dev/null
++++ b/Xvnc/programs/Xserver/Makefile.cfb-common
+@@ -0,0 +1,115 @@
++ifndef PIXELSIZE
++	$(error Makefile.cfb-common requires to be included properly by a cfg*/Makefile with PIXELSIZE being defined.)
++endif
++
++ifeq ($(PIXELSIZE),8)
++	PSZSRCS = cfb8bit.c cfbteblt8.c cfbglrop8.c cfbpush8.c cfbrctstp8.c cfb8cppl.c
++endif
++
++define link_source_file =
++$(1): ../cfb/$(1)
++	$$(LN) $$< $$@
++
++endef
++
++SRCS = cfbgc.c cfbrrop.c cfbwindow.c cfbpntwin.c cfbmskbits.c cfbpixmap.c cfbbitblt.c cfbfillsp.c cfbsetsp.c cfbscrinit.c cfballpriv.c cfbgetsp.c cfbfillrct.c cfbsolidC.c cfbsolidX.c cfbsolidG.c cfbtileoddC.c cfbtileoddG.c cfbtile32C.c cfbtile32G.c cfbcmap.c cfbzerarcC.c cfbzerarcX.c cfbzerarcG.c cfbfillarcC.c cfbfillarcG.c cfbigblt8.c cfbglblt8.c cfbtegblt.c cfbbstore.c cfbbltC.c cfbbltX.c cfbbltO.c cfbbltG.c cfbpolypnt.c cfbbres.c cfbline.c cfbhrzvert.c cfbbresd.c cfbimage.c cfbseg.c cfb8lineCO.c cfb8lineX.c cfb8lineG.c cfb8lineCP.c cfb8segC.c cfb8segX.c cfb8segG.c cfb8segCS.c cfbply1rctC.c cfbply1rctG.c $(PSZSRCS)
++OBJS = $(SRCS:.c=.o)
++INCS = -I. -I../cfb -I../mfb -I../mi -I../include -I../../../exports/include/X11 -I../../../include/fonts -I../hw/xfree86/common -I../../../exports/include
++DEFS += -DPSZ=$(PIXELSIZE) # -DXFREE86 # <- This only pulls in some assembler optimization for alpha and mips, the later conflicts at least with mips64el.
++
++all: libcfb.a
++
++libcfb.a: $(OBJS)
++	$(RM) $@
++	$(AR) cqs $@ $^
++
++cfbseg.o: cfbseg.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DPOLYSEGMENT -o $@ $<
++
++cfbfillarcC.o: cfbfillarcC.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXcopy -o $@ $<
++
++cfbfillarcG.o: cfbfillarcG.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXset -o $@ $<
++
++cfbzerarcC.o: cfbzerarcC.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXcopy -o $@ $<
++
++cfbzerarcX.o: cfbzerarcX.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXxor -o $@ $<
++
++cfbzerarcG.o: cfbzerarcG.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXset -o $@ $<
++
++cfbbltC.o: cfbbltC.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=Mcopy -o $@ $<
++
++cfbbltX.o: cfbbltX.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=Mxor -o $@ $<
++
++cfbbltO.o: cfbbltO.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=Mor -o $@ $<
++
++cfbbltG.o: cfbbltG.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=0 -o $@ $<
++
++cfbsolidC.o: cfbsolidC.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXcopy -o $@ $<
++
++cfbsolidX.o: cfbsolidX.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXxor -o $@ $<
++
++cfbsolidG.o: cfbsolidG.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXset -o $@ $<
++
++cfbtileoddC.o: cfbtileoddC.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=Mcopy -o $@ $<
++
++cfbtileoddG.o: cfbtileoddG.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=0 -o $@ $<
++
++cfbtile32C.o: cfbtile32C.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=Mcopy -o $@ $<
++
++cfbtile32G.o: cfbtile32G.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=0 -o $@ $<
++
++cfb8lineCO.o: cfb8lineCO.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXcopy -o $@ $<
++
++cfb8lineCP.o: cfb8lineCP.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXcopy -DPREVIOUS -o $@ $<
++
++cfb8lineX.o: cfb8lineX.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXxor -o $@ $<
++
++cfb8lineG.o: cfb8lineG.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXset -o $@ $<
++
++cfb8segCS.o: cfb8segCS.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXcopy -DPOLYSEGMENT -DWIDTH_SHIFT -o $@ $<
++
++cfb8segC.o: cfb8segC.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXcopy -DPOLYSEGMENT -o $@ $<
++
++cfb8segX.o: cfb8segX.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXxor -DPOLYSEGMENT -o $@ $<
++
++cfb8segG.o: cfb8segG.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXset -DPOLYSEGMENT -o $@ $<
++
++cfbply1rctC.o: cfbply1rctC.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXcopy -o $@ $<
++
++cfbply1rctG.o: cfbply1rctG.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DRROP=GXset -o $@ $<
++
++cfbglrop8.o: cfbglrop8.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DGLYPHROP -o $@ $<
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/programs/Xserver/Xext/Makefile
+@@ -0,0 +1,20 @@
++SRCS = shape.c shm.c mbuf.c mitmisc.c xtest.c xtest1di.c xtest1dd.c sleepuntil.c bigreq.c sync.c xcmisc.c xprint.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I../include -I../../../exports/include/X11 -I../../../include/extensions -I../hw/xfree86/common -I../hw/xfree86/os-support -I../../../exports/include
++DEFS +=
++
++all: libext.a
++
++libext.a: $(OBJS)
++	$(RM) $@
++	$(AR) cqs $@ $^
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) libext.a
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/programs/Xserver/cfb/Makefile
+@@ -0,0 +1,91 @@
++PIXELSIZE = 8
++
++include ../Makefile.cfb-common
++
++cfbseg.c: cfbline.c
++	$(LN) $< $@
++
++cfbfillarcC.c: cfbfillarc.c
++	$(LN) $< $@
++
++cfbfillarcG.c: cfbfillarc.c
++	$(LN) $< $@
++
++cfbzerarcC.c: cfbzerarc.c
++	$(LN) $< $@
++
++cfbzerarcX.c: cfbzerarc.c
++	$(LN) $< $@
++
++cfbzerarcG.c: cfbzerarc.c
++	$(LN) $< $@
++
++cfbbltC.c: cfbblt.c
++	$(LN) $< $@
++
++cfbbltX.c: cfbblt.c
++	$(LN) $< $@
++
++cfbbltO.c: cfbblt.c
++	$(LN) $< $@
++
++cfbbltG.c: cfbblt.c
++	$(LN) $< $@
++
++cfbsolidC.c: cfbsolid.c
++	$(LN) $< $@
++
++cfbsolidX.c: cfbsolid.c
++	$(LN) $< $@
++
++cfbsolidG.c: cfbsolid.c
++	$(LN) $< $@
++
++cfbtileoddC.c: cfbtileodd.c
++	$(LN) $< $@
++
++cfbtileoddG.c: cfbtileodd.c
++	$(LN) $< $@
++
++cfbtile32C.c: cfbtile32.c
++	$(LN) $< $@
++
++cfbtile32G.c: cfbtile32.c
++	$(LN) $< $@
++
++cfb8lineCO.c: cfb8line.c
++	$(LN) $< $@
++
++cfb8lineCP.c: cfb8line.c
++	$(LN) $< $@
++
++cfb8lineX.c: cfb8line.c
++	$(LN) $< $@
++
++cfb8lineG.c: cfb8line.c
++	$(LN) $< $@
++
++cfb8segCS.c: cfb8line.c
++	$(LN) $< $@
++
++cfb8segC.c: cfb8line.c
++	$(LN) $< $@
++
++cfb8segX.c: cfb8line.c
++	$(LN) $< $@
++
++cfb8segG.c: cfb8line.c
++	$(LN) $< $@
++
++cfbply1rctC.c: cfbply1rct.c
++	$(LN) $< $@
++
++cfbply1rctG.c: cfbply1rct.c
++	$(LN) $< $@
++
++cfbglrop8.c: cfbglblt8.c
++	$(LN) $< $@
++
++clean:
++	$(RM) cfbseg.c cfbfillarcC.c cfbfillarcG.c cfbzerarcC.c cfbzerarcX.c cfbzerarcG.c cfbbltC.c cfbbltX.c cfbbltO.c cfbbltG.c cfbsolidC.c cfbsolidX.c cfbsolidG.c cfbtileoddC.c cfbtileoddG.c cfbtile32C.c cfbtile32G.c cfb8lineCO.c cfb8lineCP.c cfb8lineX.c cfb8lineG.c cfb8segCS.c cfb8segC.c cfb8segX.c cfb8segG.c cfbply1rctC.c cfbply1rctG.c cfbglrop8.c $(OBJS) libcfb.a
++
+--- /dev/null
++++ b/Xvnc/programs/Xserver/cfb16/Makefile
+@@ -0,0 +1,8 @@
++PIXELSIZE = 16
++
++include ../Makefile.cfb-common
++
++$(foreach SRC, $(SRCS), $(eval $(call link_source_file,$(SRC))))
++
++clean:
++	$(RM) $(SRCS) $(OBJS) libcfb.a
+--- /dev/null
++++ b/Xvnc/programs/Xserver/cfb24/Makefile
+@@ -0,0 +1,9 @@
++PIXELSIZE = 24
++
++include ../Makefile.cfb-common
++
++$(foreach SRC, $(SRCS), $(eval $(call link_source_file,$(SRC))))
++
++clean:
++	$(RM) $(SRCS) $(OBJS) libcfb.a
++
+--- /dev/null
++++ b/Xvnc/programs/Xserver/cfb32/Makefile
+@@ -0,0 +1,8 @@
++PIXELSIZE = 32
++
++include ../Makefile.cfb-common
++
++$(foreach SRC, $(SRCS), $(eval $(call link_source_file,$(SRC))))
++
++clean:
++	$(RM) $(SRCS) $(OBJS) libcfb.a
+--- /dev/null
++++ b/Xvnc/programs/Xserver/dix/Makefile
+@@ -0,0 +1,33 @@
++SRCS = atom.c colormap.c cursor.c devices.c dispatch.c dixutils.c events.c extension.c gc.c globals.c glyphcurs.c grabs.c main.c property.c resource.c swaprep.c swapreq.c tables.c window.c initatoms.c dixfonts.c privates.c pixmap.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I../include -I../../../exports/include/X11 -I../../../include/fonts -I../../../include/extensions
++DEFS +=
++
++XPSRCS = xpstubs.c
++XPOBJS = $(XPSRCS:.c=.o)
++
++all: libdix.a libxpstubs.a
++
++libdix.a: $(OBJS)
++	$(RM) $@
++	$(AR) cqs $@ $^
++
++libxpstubs.a: $(XPOBJS)
++	$(RM) $@
++	$(AR) cqs $@ $^
++
++globals.o: globals.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DCOMPILEDDEFAULTFONTPATH=\"/usr/share/fonts/X11/misc/,/usr/share/fonts/X11/Speedo/,/usr/share/fonts/X11/Type1/,/usr/share/fonts/X11/75dpi/,/usr/share/fonts/X11/100dpi/\" -DRGB_DB=\"/usr/share/X11/rgb\" -o $@ $<
++
++main.o: main.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DVENDOR_STRING="\"AT&T Laboratories Cambridge\"" -DVENDOR_RELEASE=3332 -o $@ $<
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) libdix.a $(XPOBJS) libxpstubs.a
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/programs/Xserver/hw/vnc/Makefile
+@@ -0,0 +1,23 @@
++SRCS = init.c sockets.c kbdptr.c cmap.c draw.c cutpaste.c dispcur.c sprite.c rfbserver.c translate.c httpd.c auth.c rre.c corre.c stats.c hextile.c zlib.c tight.c cursor.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I. -I../../../../exports/include/X11 -I../../../../include/fonts -I../../cfb -I../../mfb -I../../mi -I../../include -I../../os -I../../../../../include -I../../../../exports/include
++DEFS += -DDDXOSINIT -DSERVER_LOCK -DDDXOSFATALERROR -DDDXTIME -DPART_NET
++
++all: libvnc.a
++
++libvnc.a: $(OBJS)
++	$(RM) $@
++	$(AR) cqs $@ $^
++
++init.o: init.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) -Wno-error=format-security $(DEFS) $(INCS) -DXVNCRELEASE=\"TightVNC-1.3.10\" -o $@ $<
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(DEFS) $(INCS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) libvnc.a
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/programs/Xserver/mfb/Makefile
+@@ -0,0 +1,146 @@
++SRCS = mfbgc.c mfbwindow.c mfbfont.c mfbfillrct.c mfbpntwin.c maskbits.c mfbpixmap.c mfbimage.c mfbline.c mfbbres.c mfbhrzvert.c mfbbresd.c mfbpushpxl.c mfbzerarc.c mfbfillarc.c mfbfillsp.c mfbsetsp.c mfbscrinit.c mfbscrclse.c mfbclip.c mfbbitblt.c mfbgetsp.c mfbpolypnt.c mfbbltC.c mfbbltX.c mfbbltCI.c mfbbltO.c mfbbltG.c mfbcmap.c mfbtileC.c mfbtileG.c mfbmisc.c mfbbstore.c mfbseg.c mfbpgbwht.c mfbpgbblak.c mfbpgbinv.c mfbigbwht.c mfbigbblak.c mfbpawhite.c mfbpablack.c mfbpainv.c mfbtewhite.c mfbteblack.c mfbbltC.c mfbbltX.c mfbbltCI.c mfbbltO.c mfbbltG.c mfbtileC.c mfbtileG.c mfbplywhite.c mfbplyblack.c mfbplyinv.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I. -I../mi -I../include -I../../../exports/include/X11 -I../../../include/fonts -I../../../exports/include
++DEFS +=
++
++all: libmfb.a
++
++libmfb.a: $(OBJS)
++	$(RM) $@
++	$(AR) cqs $@ $^
++
++mfbseg.c: mfbline.c
++	$(LN) $< $@
++
++mfbseg.o: mfbseg.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DPOLYSEGMENT -o $@ $<
++
++mfbpgbwht.c: mfbplygblt.c
++	$(LN) $< $@
++
++mfbpgbwht.o: mfbpgbwht.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBPOLYGLYPHBLT=mfbPolyGlyphBltWhite -DOPEQ=MFB_OPEQ_WHITE -o $@ $<
++
++mfbpgbblak.c: mfbplygblt.c
++	$(LN) $< $@
++
++mfbpgbblak.o: mfbpgbblak.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBPOLYGLYPHBLT=mfbPolyGlyphBltBlack -DOPEQ=MFB_OPEQ_BLACK -o $@ $<
++
++mfbpgbinv.c: mfbplygblt.c
++	$(LN) $< $@
++
++mfbpgbinv.o: mfbpgbinv.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBPOLYGLYPHBLT=mfbPolyGlyphBltInvert -DOPEQ=MFB_OPEQ_INVERT -o $@ $<
++
++mfbigbwht.c: mfbimggblt.c
++	$(LN) $< $@
++
++mfbigbwht.o: mfbigbwht.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBIMAGEGLYPHBLT=mfbImageGlyphBltWhite -DOPEQ=MFB_OPEQ_WHITE -o $@ $<
++
++mfbigbblak.c: mfbimggblt.c
++	$(LN) $< $@
++
++mfbigbblak.o: mfbigbblak.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBIMAGEGLYPHBLT=mfbImageGlyphBltBlack -DOPEQ=MFB_OPEQ_BLACK -o $@ $<
++
++mfbpawhite.c: mfbpntarea.c
++	$(LN) $< $@
++
++mfbpawhite.o: mfbpawhite.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBSOLIDFILLAREA=mfbSolidWhiteArea -DMFBSTIPPLEFILLAREA=mfbStippleWhiteArea -DOPEQ=MFB_OPEQ_WHITE -DEQWHOLEWORD=MFB_EQWHOLEWORD_WHITE -o $@ $<
++
++mfbpablack.c: mfbpntarea.c
++	$(LN) $< $@
++
++mfbpablack.o: mfbpablack.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBSOLIDFILLAREA=mfbSolidBlackArea -DMFBSTIPPLEFILLAREA=mfbStippleBlackArea -DOPEQ=MFB_OPEQ_BLACK -DEQWHOLEWORD=MFB_EQWHOLEWORD_BLACK -o $@ $<
++
++mfbpainv.c: mfbpntarea.c
++	$(LN) $< $@
++
++mfbpainv.o: mfbpainv.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBSOLIDFILLAREA=mfbSolidInvertArea -DMFBSTIPPLEFILLAREA=mfbStippleInvertArea -DOPEQ=MFB_OPEQ_INVERT -DEQWHOLEWORD=MFB_EQWHOLEWORD_INVERT -o $@ $<
++
++mfbtewhite.c: mfbtegblt.c
++	$(LN) $< $@
++
++mfbtewhite.o: mfbtewhite.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBTEGLYPHBLT=mfbTEGlyphBltWhite -DOP=MFB_OP_WHITE -DCLIPTETEXT=mfbImageGlyphBltWhite -o $@ $<
++
++mfbteblack.c: mfbtegblt.c
++	$(LN) $< $@
++
++mfbteblack.o: mfbteblack.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBTEGLYPHBLT=mfbTEGlyphBltBlack -DOP=MFB_OP_BLACK -DCLIPTETEXT=mfbImageGlyphBltBlack -o $@ $<
++
++mfbplywhite.c: mfbply1rct.c
++	$(LN) $< $@
++
++mfbplywhite.o: mfbplywhite.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBFILLPOLY1RECT=mfbFillPolyWhite -DOPEQ=MFB_OPEQ_WHITE -DEQWHOLEWORD=MFB_EQWHOLEWORD_WHITE -o $@ $<
++
++mfbplyblack.c: mfbply1rct.c
++	$(LN) $< $@
++
++mfbplyblack.o: mfbplyblack.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBFILLPOLY1RECT=mfbFillPolyBlack -DOPEQ=MFB_OPEQ_BLACK -DEQWHOLEWORD=MFB_EQWHOLEWORD_BLACK -o $@ $<
++
++mfbplyinv.c: mfbply1rct.c
++	$(LN) $< $@
++
++mfbplyinv.o: mfbplyinv.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMFBFILLPOLY1RECT=mfbFillPolyInvert -DOPEQ=MFB_OPEQ_INVERT -DEQWHOLEWORD=MFB_EQWHOLEWORD_INVERT -o $@ $<
++
++mfbbltC.c: mfbblt.c
++	$(LN) $< $@
++
++mfbbltC.o: mfbbltC.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=Mcopy -o $@ $<
++
++mfbbltX.c: mfbblt.c
++	$(LN) $< $@
++
++mfbbltX.o: mfbbltX.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=Mxor -o $@ $<
++
++mfbbltCI.c: mfbblt.c
++	$(LN) $< $@
++
++mfbbltCI.o: mfbbltCI.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=McopyInverted -o $@ $<
++
++mfbbltO.c: mfbblt.c
++	$(LN) $< $@
++
++mfbbltO.o: mfbbltO.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=Mor -o $@ $<
++
++mfbbltG.c: mfbblt.c
++	$(LN) $< $@
++
++mfbbltG.o: mfbbltG.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=0 -o $@ $<
++
++mfbtileC.c: mfbtile.c
++	$(LN) $< $@
++
++mfbtileC.o: mfbtileC.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=Mcopy -o $@ $<
++
++mfbtileG.c: mfbtile.c
++	$(LN) $< $@
++
++mfbtileG.o: mfbtileG.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -DMROP=0 -o $@ $<
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) libmfb.a mfbseg.c mfbpgbwht.c mfbpgbblak.c mfbpgbinv.c mfbigbwht.c mfbigbblak.c mfbpawhite.c mfbpablack.c mfbpainv.c mfbtewhite.c mfbteblack.cmfbplywhite.c mfbplyblack.c mfbplyinv.c mfbbltC.c mfbbltX.c mfbbltCI.c mfbbltO.c mfbbltG.c mfbtileC.c mfbtileG.c
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/programs/Xserver/mi/Makefile
+@@ -0,0 +1,27 @@
++SRCS = mivaltree.c mipolyseg.c mipolyrect.c mipoly.c mipolycon.c mipolygen.c mipolyutil.c mifillrct.c miwideline.c mispans.c miarc.c mizerarc.c mifillarc.c miwindow.c micursor.c miregion.c mipolytext.c mibitblt.c mipolypnt.c mipushpxl.c miexpose.c miglblt.c mizerline.c mifpolycon.c midash.c mibstore.c miinitext.c mieq.c mipointer.c misprite.c midispcur.c miscrinit.c miclipn.c migc.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I. -I../include -I../../../include/fonts -I../../../exports/include/X11 -I../../../exports/include
++DEFS +=
++
++CBRTSRCS = cbrt.c
++CBRTOBJS = $(CBRTSRCS:.c=.o)
++
++all: libmi.a libcbrt.a
++
++libmi.a: $(OBJS)
++	$(RM) $@
++	$(AR) cqs $@ $^
++
++libcbrt.a: $(CBRTOBJS)
++	$(RM) $@
++	$(AR) cqs $@ $^
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) libmi.a $(CBRTOBJS) libcbrt.a
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/Xvnc/programs/Xserver/os/Makefile
+@@ -0,0 +1,29 @@
++SRCS = WaitFor.c access.c connection.c io.c oscolor.c osinit.c utils.c auth.c mitauth.c secauth.c xdmauth.c xdmcp.c decompress.c transport.c xalloc.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I. -I../include -I../../../exports/include/X11 -I../../../include/extensions -I../../../lib/Xau -I../lbx -I../../../exports/include
++DEFS += -DHASXDMAUTH -DDDXOSINIT -DSERVER_LOCK -DDDXOSFATALERROR -DDDXTIME -DPART_NET -DUSE_RGB_TXT -DXDMCP -DXSERV_t -DTRANS_SERVER -DUNIXCONN -DTCPCONN
++
++XTRANS_INCS = -I../include -I../../../include -I../../../lib/xtrans
++XTRANS_DEFS =
++
++all: libos.a
++
++libos.a: $(OBJS)
++	$(RM) $@
++	$(AR) cqs $@ $^
++
++transport.o: transport.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) -Wno-error=format-security $(XTRANS_INCS) $(DEFS) $(XTRANS_DEFS) -o $@ $<
++
++transport.c: ../../../lib/xtrans/transport.c
++	$(LN) $< $@
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) $(DEFS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) transport.c libos.a
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/libvncauth/Makefile
+@@ -0,0 +1,19 @@
++SRCS = vncauth.c d3des.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I. -I../include
++
++all: libvncauth.a
++
++libvncauth.a: $(OBJS)
++	$(RM) $@
++	$(AR) cqs $@ $^
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) libvncauth.a
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/vncconnect/Makefile
+@@ -0,0 +1,19 @@
++SRCS = vncconnect.c
++OBJS = $(SRCS:.c=.o)
++INCS =
++LIBS = -lX11 -lXext
++
++all: vncconnect
++
++vncconnect: $(OBJS)
++	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) vncconnect
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/vncpasswd/Makefile
+@@ -0,0 +1,21 @@
++SRCS = vncpasswd.c
++OBJS = $(SRCS:.c=.o)
++
++INCS = -I../include
++
++LIBS = ../libvncauth/libvncauth.a
++
++all: vncpasswd
++
++vncpasswd: $(OBJS)
++	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) vncpasswd
++
++install:
++
++.PHONY: all clean install
+--- /dev/null
++++ b/vncviewer/Makefile
+@@ -0,0 +1,19 @@
++SRCS = argsresources.c caps.c colour.c cursor.c desktop.c dialogs.c fullscreen.c listen.c misc.c popup.c rfbproto.c selection.c shm.c sockets.c tunnel.c vncviewer.c
++OBJS = $(SRCS:.c=.o)
++INCS = -I. -I../include
++LIBS = -lXaw -lXmu -lXt -lSM -lICE -lXpm -lX11 -lXext ../libvncauth/libvncauth.a -lz -ljpeg
++
++all: vncviewer
++
++vncviewer: $(OBJS)
++	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
++
++%.o: %.c
++	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(INCS) -o $@ $<
++
++clean:
++	$(RM) $(OBJS) vncviewer
++
++install:
++
++.PHONY: all clean install

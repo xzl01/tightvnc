@@ -1,0 +1,3 @@
+#!/usr/bin/dh-exec
+vncpasswd/vncpasswd     => usr/bin/tightvncpasswd
+vncpasswd/vncpasswd.man => usr/share/man/man1/tightvncpasswd.1

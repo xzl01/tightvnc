@@ -1,0 +1,4 @@
+#!/usr/bin/dh-exec
+vncviewer/vncviewer     => usr/bin/xtightvncviewer
+vncviewer/Vncviewer     => etc/X11/app-defaults/Vncviewer
+vncviewer/vncviewer.man => usr/share/man/man1/xtightvncviewer.1

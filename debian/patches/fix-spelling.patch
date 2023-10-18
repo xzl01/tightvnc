@@ -1,0 +1,49 @@
+Description: Fix spelling in various files
+Forwarded: no
+Author: Jari Aalto <jari.aalto@cante.net>
+Author: Sven Geuer <debmaint@g-e-u-e-r.de>
+Last-Update: 2020-06-24
+--- a/Xvnc/programs/Xserver/Xvnc.man
++++ b/Xvnc/programs/Xserver/Xvnc.man
+@@ -64,7 +64,7 @@
+ UDP port for keyboard/pointer data.
+ .TP
+ \fB\-rfbport\fR \fIport\fR
+-TCP port for RFB protocol. The RFB protocol is used for commnunication
++TCP port for RFB protocol. The RFB protocol is used for communication
+ between VNC server and clients.
+ .TP
+ \fB\-rfbwait\fR \fItime\fR
+@@ -137,7 +137,7 @@
+ .SH BUGS
+ There are many security problems in current Xvnc implementation. It's
+ recommended to restrict network access to Xvnc servers from untrusted
+-network adresses. Probably, the best way to secure Xvnc server is to
++network addresses. Probably, the best way to secure Xvnc server is to
+ allow only loopback connections from the server machine (the
+ \fI\-localhost\fR option) and to use SSH tunneling for remote access
+ to the Xvnc server. For details on SSH tunneling, see
+--- a/vncpasswd/vncpasswd.man
++++ b/vncpasswd/vncpasswd.man
+@@ -29,8 +29,8 @@
+ passwords when started with the \fB\-rfbauth\fR command-line option
+ (or when started from the \fBvncserver\fR script).
+ 
+-\fBvncpasswd\fR allows to enter either one or two passwords. The first
+-password is the primary one, the second password can be used for
++\fBvncpasswd\fR allows one to enter either one or two passwords. The
++first password is the primary one, the second password can be used for
+ view-only authentication. \fBXvnc\fR will restrict mouse and keyboard
+ input from clients who authenticated with the view-only password. The
+ \fBvncpasswd\fR utility asks interactively if it should set the second
+--- a/Xvnc/lib/font/Type1/t1funcs.c
++++ b/Xvnc/lib/font/Type1/t1funcs.c
+@@ -691,7 +691,7 @@
+ 	/* fall through */
+     default:
+ 	/* this should not happen */
+-	ErrorF("Type1 return code not convertable to X return code: %d\n", rc);
++	ErrorF("Type1 return code not convertible to X return code: %d\n", rc);
+ 	return rc;
+     }
+ }

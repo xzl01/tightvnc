@@ -1,0 +1,6 @@
+#!/bin/sh
+
+set -e
+
+kill `pidof vncviewer`
+sleep 2

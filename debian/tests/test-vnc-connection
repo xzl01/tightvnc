@@ -1,0 +1,48 @@
+#!/bin/sh
+
+set -e
+cd debian/tests/test-vnc-connection.d
+HOSTNAME="`uname -n`"
+SERVERDISPLAY=42
+CLIENTDISPLAY=43
+
+#Create dedicated users to run VNC server and client
+RANDOMSTRING=`printf '%s%s%s' \`od -An -N3 -tx1 /dev/random\``
+SERVERUSER="_us$RANDOMSTRING"
+CLIENTUSER="_uc$RANDOMSTRING"
+echo Server user is $SERVERUSER.
+echo Client user is $CLIENTUSER.
+# test with home directory names containing white space, covers bug #984776
+useradd -m $SERVERUSER -d "/home/${SERVERUSER}'s dir"
+useradd -m $CLIENTUSER -d "/home/${CLIENTUSER}'s dir"
+
+#Start server then client
+echo Starting VNC server ...
+runuser -l $SERVERUSER $PWD/create-credentials
+runuser -l $SERVERUSER $PWD/start-vnc-server $SERVERDISPLAY
+./wait-for-process $SERVERUSER xterm
+echo Starting VNC client ...
+runuser -l $CLIENTUSER $PWD/create-credentials
+runuser -l $CLIENTUSER $PWD/start-vnc-client $CLIENTDISPLAY $SERVERDISPLAY
+./wait-for-process $CLIENTUSER vncviewer
+
+#Stop client then server
+echo Stopping VNC client ...
+runuser -l $CLIENTUSER $PWD/stop-vnc-client $CLIENTDISPLAY
+echo Stopping VNC server ...
+runuser -l $SERVERUSER $PWD/stop-vnc-server $SERVERDISPLAY
+
+#Check server log for expected content
+echo Checking server log for expected content ...
+cat "/home/${SERVERUSER}'s dir/.vnc/${HOSTNAME}:${SERVERDISPLAY}.log"
+while read LOGLINE <&3 && read PATTERNLINE <&4 ; do
+	if [ "${LOGLINE##$PATTERNLINE}" ]; then
+		echo MISMATCH! >&2
+		echo "LOG:     ${LOGLINE}" >&2
+		echo "PATTERN: ${PATTERNLINE}" >&2
+		echo -n 'Press <ENTER>'
+		read
+		exit 1
+	fi;
+done 3<"/home/${SERVERUSER}'s dir/.vnc/${HOSTNAME}:${SERVERDISPLAY}.log" 4<serverlog.patterns
+echo Looks good.

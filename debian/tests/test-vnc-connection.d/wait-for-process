@@ -1,0 +1,16 @@
+#!/bin/sh
+
+set -e
+USER="$1"
+PROCESS="$2"
+
+for i in `seq 10`; do
+	sleep 1
+	echo Check $i whether $PROCESS is running under $USER
+	if pgrep -u $USER $PROCESS; then
+		echo $PROCESS found.
+		exit 0
+	fi
+done
+echo Timeout on checking for $PROCESS!
+exit 1

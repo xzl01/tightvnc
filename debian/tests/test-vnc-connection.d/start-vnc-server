@@ -1,0 +1,8 @@
+#!/bin/sh
+
+set -e
+
+SERVERDISPLAY=$1
+
+touch .Xauthority
+vncserver :$SERVERDISPLAY 2>&1 &

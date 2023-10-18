@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -e
+
+CLIENTDISPLAY=$1
+SERVERDISPLAY=$2
+
+# In chroot enviroment calling vncviewer requires a port number,
+# it does not choose the appropriate port when given a display number.
+echo "vncviewer -passwd .vnc/passwd ::59$SERVERDISPLAY" > .xinitrc
+xinit -- /usr/bin/Xvnc :$CLIENTDISPLAY 2>&1 &

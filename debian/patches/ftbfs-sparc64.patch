@@ -1,0 +1,17 @@
+Description: Make tightvnc buildable for the sparc64 architecture
+ With sparc64 an undefined macro is invoked. This macro is added by the patch.
+Forwarded: no
+Author: Sven Geuer <debmaint@g-e-u-e-r.de>
+Last-Update: 2021-03-05
+--- a/Xvnc/programs/Xserver/cfb/cfbrrop.h
++++ b/Xvnc/programs/Xserver/cfb/cfbrrop.h
+@@ -270,6 +270,9 @@
+ #define RROP_UNROLL_CASE4(p,i)    RROP_UNROLL_CASE2(p,(i)+2) RROP_UNROLL_CASE2(p,i)
+ #define RROP_UNROLL_CASE8(p,i)    RROP_UNROLL_CASE4(p,(i)+4) RROP_UNROLL_CASE4(p,i)
+ #define RROP_UNROLL_CASE16(p,i)   RROP_UNROLL_CASE8(p,(i)+8) RROP_UNROLL_CASE8(p,i)
++#ifdef LONG64
++#define RROP_UNROLL_CASE32(p,i)   RROP_UNROLL_CASE16(p,(i)+16) RROP_UNROLL_CASE16(p,i)
++#endif /* LONG64 */
+ #define RROP_UNROLL_CASE3(p)	RROP_UNROLL_CASE2(p,2) RROP_UNROLL_CASE1(p,1)
+ #define RROP_UNROLL_CASE7(p)	RROP_UNROLL_CASE4(p,4) RROP_UNROLL_CASE3(p)
+ #define RROP_UNROLL_CASE15(p)	RROP_UNROLL_CASE8(p,8) RROP_UNROLL_CASE7(p)

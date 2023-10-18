@@ -1,0 +1,7 @@
+Tests: test-vnc-connection
+Depends: x11-xserver-utils,
+         xfonts-base,
+         xinit,
+         xterm,
+         @,
+Restrictions: needs-root

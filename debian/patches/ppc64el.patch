@@ -1,0 +1,101 @@
+Description: Add ppc64el support
+Forwarded: no
+Author: Lauri Kasanen <cand@gmx.com>
+Author: Sven Geuer <debmaint@g-e-u-e-r.de>
+Last-Update: 2021-05-15
+
+Index: tightvnc-1.3.9/Xvnc/include/Xmd.h
+===================================================================
+--- tightvnc-1.3.9.orig/Xvnc/include/Xmd.h
++++ tightvnc-1.3.9/Xvnc/include/Xmd.h
+@@ -59,7 +59,7 @@ SOFTWARE.
+ #ifdef CRAY
+ #define WORD64				/* 64-bit architecture */
+ #endif
+-#if defined(__alpha) || defined(__alpha__) || defined(__x86_64__)
++#if defined(__alpha) || defined(__alpha__) || defined(__x86_64__) || defined(__powerpc64__)
+ #define LONG64				/* 32/64-bit architecture */
+ #endif
+ #ifdef __sgi
+Index: tightvnc-1.3.9/Xvnc/lib/Xdmcp/Alloc.c
+===================================================================
+--- tightvnc-1.3.9.orig/Xvnc/lib/Xdmcp/Alloc.c
++++ tightvnc-1.3.9/Xvnc/lib/Xdmcp/Alloc.c
+@@ -31,7 +31,7 @@ in this Software without prior written a
+ 
+ /* stubs for use when Xalloc, Xrealloc and Xfree are not defined */
+ 
+-extern char	*malloc (), *realloc ();
++#include <stdlib.h>
+ 
+ unsigned long *
+ Xalloc (amount)
+Index: tightvnc-1.3.9/Xvnc/programs/Xserver/hw/vnc/rfb.h
+===================================================================
+--- tightvnc-1.3.9.orig/Xvnc/programs/Xserver/hw/vnc/rfb.h
++++ tightvnc-1.3.9/Xvnc/programs/Xserver/hw/vnc/rfb.h
+@@ -31,6 +31,7 @@
+ #include <vncauth.h>
+ #include <zlib.h>
+ #include <stdarg.h>
++#include <stdlib.h>
+ 
+ /* It's a good idea to keep these values a bit greater than required. */
+ #define MAX_ENCODINGS 10
+Index: tightvnc-1.3.9/Xvnc/programs/Xserver/include/misc.h
+===================================================================
+--- tightvnc-1.3.9.orig/Xvnc/programs/Xserver/include/misc.h
++++ tightvnc-1.3.9/Xvnc/programs/Xserver/include/misc.h
+@@ -158,16 +158,10 @@ typedef struct _xReq *xReqPtr;
+ 
+ #define min(a, b) (((a) < (b)) ? (a) : (b))
+ #define max(a, b) (((a) > (b)) ? (a) : (b))
+-#if !defined(AMOEBA) && !defined(__EMX__)
+-#ifndef abs
+-#define abs(a) ((a) > 0 ? (a) : -(a))
+-#endif
+-#else /* AMOEBA || __EMX__ */
+ /* abs() is a function, not a macro; include the file declaring
+  * it in case we haven't done that yet.
+  */  
+ #include <stdlib.h>
+-#endif /* AMOEBA */
+ #ifndef Fabs
+ #define Fabs(a) ((a) > 0.0 ? (a) : -(a))	/* floating absolute value */
+ #endif
+Index: tightvnc-1.3.9/Xvnc/programs/Xserver/include/servermd.h
+===================================================================
+--- tightvnc-1.3.9.orig/Xvnc/programs/Xserver/include/servermd.h
++++ tightvnc-1.3.9/Xvnc/programs/Xserver/include/servermd.h
+@@ -407,8 +407,31 @@ SOFTWARE.
+ 
+ #if defined (linux) && defined(__powerpc__)
+ 
++#ifdef __powerpc64__
++#  define BITMAP_SCANLINE_UNIT			64
++# define BITMAP_SCANLINE_PAD 			64
++# define LOG2_BITMAP_PAD			6
++# define LOG2_BYTES_PER_SCANLINE_PAD		3
++
++/* Add for handling protocol XPutImage and XGetImage; see comment in
++ * Alpha section.
++ */
++#define INTERNAL_VS_EXTERNAL_PADDING
++#define BITMAP_SCANLINE_UNIT_PROTO		32
++
++#define BITMAP_SCANLINE_PAD_PROTO 	 	32
++#define LOG2_BITMAP_PAD_PROTO			5
++#define LOG2_BYTES_PER_SCANLINE_PAD_PROTO	2
++#endif /* linux/ppc64 */
++
++#if defined(__LITTLE_ENDIAN__)
++#define IMAGE_BYTE_ORDER       LSBFirst
++#define BITMAP_BIT_ORDER       LSBFirst
++#else
+ #define IMAGE_BYTE_ORDER       MSBFirst
+ #define BITMAP_BIT_ORDER       MSBFirst
++#endif
++
+ #define GLYPHPADBYTES          4
+ #define GETLEFTBITS_ALIGNMENT  1
+ 

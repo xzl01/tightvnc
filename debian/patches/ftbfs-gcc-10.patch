@@ -1,0 +1,43 @@
+Description: Ensure tightvnc builds with gcc-10
+ Apply the measure suggested on https://gcc.gnu.org/gcc-10/porting_to.html.
+ For further documentation refer to
+ https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html.
+Bug-Debian: https://bugs.debian.org/957878
+Forwarded: no
+Author: Sven Geuer <debmaint@g-e-u-e-r.de>
+Last-Update: 2020-07-24
+--- a/Xvnc/programs/Xserver/cfb/cfballpriv.c
++++ b/Xvnc/programs/Xserver/cfb/cfballpriv.c
+@@ -42,8 +42,8 @@
+ #include "cfbmskbits.h"
+ #include "mibstore.h"
+ 
+-int cfbWindowPrivateIndex;
+-int cfbGCPrivateIndex;
++int cfbWindowPrivateIndex __attribute__((common));
++int cfbGCPrivateIndex __attribute__((common));
+ #ifdef CFB_NEED_SCREEN_PRIVATE
+ int cfbScreenPrivateIndex;
+ #endif
+--- a/Xvnc/programs/Xserver/cfb/cfbbitblt.c
++++ b/Xvnc/programs/Xserver/cfb/cfbbitblt.c
+@@ -666,7 +666,7 @@
+ #endif
+ 
+ /* shared among all different cfb depths through linker magic */
+-RegionPtr   (*cfbPuntCopyPlane)();
++RegionPtr   (*cfbPuntCopyPlane)() __attribute__((common));
+ 
+ RegionPtr cfbCopyPlane(pSrcDrawable, pDstDrawable,
+ 	    pGC, srcx, srcy, width, height, dstx, dsty, bitPlane)
+--- a/Xvnc/programs/Xserver/hw/xfree86/common/compiler.h
++++ b/Xvnc/programs/Xserver/hw/xfree86/common/compiler.h
+@@ -265,7 +265,7 @@
+ #else /* defined(linux) && defined(__alpha__) */
+ #if defined(__mips__)
+ 
+-unsigned int IOPortBase;  /* Memory mapped I/O port area */
++unsigned int IOPortBase __attribute__((common));  /* Memory mapped I/O port area */
+ 
+ static __inline__ void
+ outb(port, val)

@@ -1,0 +1,7 @@
+tightvnc (1:1.3.10-1) unstable; urgency=medium
+
+    TightVNC Server now supports system-wide and per user configuration
+    files. Please refer to the FILES section in the manual page and to the
+    detailed documentation in /etc/tightvncserver.conf.
+
+ -- Sven Geuer <debmaint@g-e-u-e-r.de>  Sat, 11 Jul 2020 11:02:00 +0200

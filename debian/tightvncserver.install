@@ -1,0 +1,8 @@
+#!/usr/bin/dh-exec
+Xvnc/programs/Xserver/Xvnc     => usr/bin/Xtightvnc
+Xvnc/programs/Xserver/Xvnc.man => usr/share/man/man1/Xtightvnc.1
+vncserver                      => usr/bin/tightvncserver
+vncserver.man                  => usr/share/man/man1/tightvncserver.1
+tightvncserver.conf            => etc/tightvncserver.conf
+vncconnect/vncconnect          => usr/bin/tightvncconnect
+vncconnect/vncconnect.man      => usr/share/man/man1/tightvncconnect.1

@@ -1,0 +1,196 @@
+Description: Allow for space characters in the home directory name
+ This patch makes sure $HOME is properly quoted so that unusual characters
+ like spaces, apostrophes etc. do not cause unwanted effects up to the
+ failure to start the VNC server.
+Forwarded: no
+Bug-Debian: https://bugs.debian.org/984776
+Author: Sven Geuer <debmaint@g-e-u-e-r.de>
+Last-Update: 2021-03-17
+--- a/vncserver
++++ b/vncserver
+@@ -44,8 +44,11 @@
+     $vncClasses = "/usr/share/tightvnc-java";
+ }
+ $vncUserDir = "$ENV{HOME}/.vnc";
++$quotedVncUserDir = &quotedString($vncUserDir);
++$passwdFile = "$vncUserDir/passwd";
++$quotedPasswdFile = &quotedString($passwdFile);
+ #$fontPath = "unix/:7100";
+-$authType = "-rfbauth $vncUserDir/passwd";
++$authType = "-rfbauth $quotedPasswdFile";
+ 
+ # Read configuration from the system-wide and user files if present.
+ 
+@@ -58,7 +61,7 @@
+ 
+ $defaultXStartup
+     = ("#!/bin/sh\n\n".
+-       "xrdb \$HOME/.Xresources\n".
++       "xrdb \"\$HOME/.Xresources\"\n".
+        "xsetroot -solid grey\n".
+        "#x-terminal-emulator -geometry 80x24+10+10 -ls -title \"\$VNCDESKTOP Desktop\" &\n".
+        "#x-window-manager &\n".
+@@ -67,11 +70,14 @@
+        "/etc/X11/Xsession\n");
+ 
+ $xauthorityFile = "$ENV{XAUTHORITY}";
++$quotedxauthorityFile = &quotedString($xauthorityFile);
+ 
+ ######## Adding configuration possibility ################
+ $Config_file = "/etc/vnc.conf";
++$Quoted_config_file = &quotedString($Config_file);
+ &ReadConfigFile();
+ $Config_file = "$ENV{HOME}/.vncrc";
++$Quoted_config_file = &quotedString($Config_file);
+ &ReadConfigFile();
+ 
+ if (!$XFConfigPath) {
+@@ -104,6 +110,7 @@
+ $xstartup = ($vncUserDirUnderTmp) ?
+   "$ENV{HOME}/.vncstartup" : "$vncUserDir/xstartup";
+ $xstartup = $vncStartup if ($vncStartup);
++$quotedXstartup = &quotedString($xstartup);
+ unless ($xauthorityFile) {
+     if ($vncUserDirUnderTmp) {
+         $xauthorityFile = "$vncUserDir/.Xauthority";
+@@ -111,6 +118,7 @@
+         $xauthorityFile = "$ENV{HOME}/.Xauthority";
+     }
+ }
++$quotedXauthorityFile = &quotedString($xauthorityFile);
+ 
+ chop($host = `uname -n`);
+ 
+@@ -189,13 +197,13 @@
+ 
+ # Make sure the user has a password.
+ 
+-($z,$z,$mode) = stat("$vncUserDir/passwd");
++($z,$z,$mode) = stat($passwdFile);
+ if (-e _ && (!-f _ || !-o _)) {
+-    die "$prog: Wrong type or ownership on $vncUserDir/passwd.\n";
++    die "$prog: Wrong type or ownership on $passwdFile.\n";
+ }
+ if (!-e _ || ($mode & 077) != 0) {
+     warn "\nYou will require a password to access your desktops.\n\n";
+-    system("vncpasswd $vncUserDir/passwd");
++    system("vncpasswd $quotedPasswdFile");
+     if (($? & 0xFF00) != 0) {
+         exit 1;
+     }
+@@ -218,20 +226,21 @@
+ $vncPort = 5900 + $displayNumber;
+ 
+ $desktopLog = "$vncUserDir/$host:$displayNumber.log";
++$quotedDesktopLog = &quotedString($desktopLog);
+ unlink($desktopLog);
+ 
+ # Make an X server cookie - use as the seed the sum of the current time, our
+ # PID and part of the encrypted form of the password.  Ideally we'd use
+ # /dev/urandom, but that's only available on Linux.
+ 
+-srand(time+$$+unpack("L",`cat $vncUserDir/passwd`));
++srand(time+$$+unpack("L",`cat $quotedPasswdFile`));
+ $cookie = "";
+ for (1..16) {
+     $cookie .= sprintf("%02x", int(rand(256)));
+ }
+ 
+-system("xauth -f $xauthorityFile add $host:$displayNumber . $cookie");
+-system("xauth -f $xauthorityFile add $host/unix:$displayNumber . $cookie"); 
++system("xauth -f $quotedXauthorityFile add $host:$displayNumber . $cookie");
++system("xauth -f $quotedXauthorityFile add $host/unix:$displayNumber . $cookie");
+ 
+ # Now start the X VNC Server
+ 
+@@ -250,7 +259,7 @@
+     $cmd .= " -httpport $v";
+   }
+ }
+-$cmd .= " -auth $xauthorityFile";
++$cmd .= " -auth $quotedXauthorityFile";
+ $cmd .= " -geometry $geometry" if ($geometry);
+ $cmd .= " -depth $depth" if ($depth);
+ $cmd .= " -pixelformat $pixelformat" if ($pixelformat);
+@@ -270,21 +279,22 @@
+ # Run $cmd and record the process ID.
+ 
+ $pidFile = "$vncUserDir/$host:$displayNumber.pid";
+-system("$cmd & echo \$! >$pidFile");
++$quotedPidFile = &quotedString($pidFile);
++system("$cmd & echo \$! >$quotedPidFile");
+ 
+ # Give Xtightvnc a chance to start up
+ 
+ sleep(1);
+-unless (kill 0, `cat $pidFile`) {
++unless (kill 0, `cat $quotedPidFile`) {
+     warn "Couldn't start Xtightvnc; trying default font path.\n";
+     warn "Please set correct fontPath in the $prog script.\n";
+     $cmd =~ s@-fp [^ ]+@@;
+-    system("$cmd & echo \$! >$pidFile");
++    system("$cmd & echo \$! >$quotedPidFile");
+     sleep(1);
+ }
+-unless (kill 0, `cat $pidFile`) {
++unless (kill 0, `cat $quotedPidFile`) {
+     warn "Couldn't start Xtightvnc process.\n\n";
+-    open(LOG, "<$desktopLog");
++    open(LOG, "<", $desktopLog);
+     while (<LOG>) { print; }
+     close(LOG);
+     die "\n";
+@@ -296,7 +306,7 @@
+ 
+ unless (-e "$xstartup") {
+     warn "Creating default startup script $xstartup\n";
+-    open(XSTARTUP, ">$xstartup");
++    open(XSTARTUP, ">", $xstartup);
+     print XSTARTUP $defaultXStartup;
+     close(XSTARTUP);
+     chmod 0755, "$xstartup";
+@@ -317,7 +327,7 @@
+ }
+ $ENV{VNCDESKTOP}= $desktopName;
+ 
+-system("$xstartup >> " . &quotedString($desktopLog) . " 2>&1 &");
++system("$quotedXstartup >> " . &quotedString($desktopLog) . " 2>&1 &");
+ 
+ exit;
+ 
+@@ -615,6 +625,9 @@
+ 
+ sub Kill
+ {
++	my $pidFile;
++	my $quotedPidFile;
++
+     $opt{'-kill'} =~ s/(:\d+)\.\d+$/$1/; # e.g. turn :1.0 into :1
+ 
+     if ($opt{'-kill'} =~ /^:\d+$/) {
+@@ -626,6 +639,7 @@
+ 	}
+ 	$pidFile = "$vncUserDir/$opt{'-kill'}.pid";
+     }
++	$quotedPidFile = &quotedString($pidFile);
+ 
+     unless (-r $pidFile) {
+ 	die "\nCan't find file $pidFile\n".
+@@ -633,7 +647,7 @@
+     }
+ 
+     $SIG{'HUP'} = 'IGNORE';
+-    chop($pid = `cat $pidFile`);
++    chop($pid = `cat $quotedPidFile`);
+     warn "Killing Xtightvnc process ID $pid\n";
+     system("kill $pid");
+     unlink $pidFile;
+@@ -774,7 +788,7 @@
+        colorPath
+       );
+ 
+-  if (open CONF, "<$configFile") {
++  if (open CONF, "<", $configFile) {
+     while (<CONF>) {
+       if (/^\s*\$(\w+)\s*=\s*(.*)$/) {
+         for my $var (@configurableVariables) {
